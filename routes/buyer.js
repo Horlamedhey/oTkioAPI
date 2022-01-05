@@ -50,13 +50,13 @@ router.get("/getAllProjects/:companyId", authGuard, async (req, res) => {
 
   project.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-      project,
-      responseCode: "00",
-      responseDescription: `Succesfull`,
-    });
+        project,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
 });
 
 router.post("/addProject", [authGuard, admin], async (req, res) => {
@@ -229,13 +229,13 @@ router.get("/auctions/:getAllActionsByBuyerUserID", async (req, res) => {
   });
   auction.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: "No record found" })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: "No record found" })
     : res.status(200).send({
-      auction,
-      responseCode: "00",
-      responseDescription: "Succesfull",
-    });
+        auction,
+        responseCode: "00",
+        responseDescription: "Succesfull",
+      });
 });
 
 router.get("/auctions/supplier/:getAllActionsByEmail", async (req, res) => {
@@ -858,13 +858,13 @@ router.get(
 
     item.length <= 0
       ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+          .status(400)
+          .send({ responseCode: "99", responseDescription: `No record found` })
       : res.status(200).send({
-        item,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+          item,
+          responseCode: "00",
+          responseDescription: `Succesfull`,
+        });
   }
 );
 
@@ -1173,13 +1173,13 @@ router.get("/company/getItemsCatGroups/:companyId", async (req, res) => {
   // console.log(itemsCatAndGroups);
   itemsCatAndGroups.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-      itemsCatAndGroups,
-      responseCode: "00",
-      responseDescription: `Succesfull`,
-    });
+        itemsCatAndGroups,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
 });
 
 router.get("/company/getSupplierCategories/:companyId", async (req, res) => {
@@ -1189,13 +1189,13 @@ router.get("/company/getSupplierCategories/:companyId", async (req, res) => {
   // console.log(supplierCategories);
   supplierCategories.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-      supplierCategories,
-      responseCode: "00",
-      responseDescription: `Succesfull`,
-    });
+        supplierCategories,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
 });
 
 router.get("/company/getCostCenter/:companyId", async (req, res) => {
@@ -1205,13 +1205,13 @@ router.get("/company/getCostCenter/:companyId", async (req, res) => {
   //console.log(costCenter);
   costCenter.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-      costCenter,
-      responseCode: "00",
-      responseDescription: `Succesfull`,
-    });
+        costCenter,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
 });
 
 router.get("/company/getTag/:companyId", async (req, res) => {
@@ -1221,13 +1221,13 @@ router.get("/company/getTag/:companyId", async (req, res) => {
   // console.log(supplierCategories);
   tag.length <= 0
     ? res
-      .status(400)
-      .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-      tag,
-      responseCode: "00",
-      responseDescription: `Succesfull`,
-    });
+        tag,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
 });
 
 router.post(
@@ -1887,7 +1887,7 @@ router.post(
         });
       } else if (supplierCompanyAdmin && supplierCompanyAdmin.isAdmin) {
         let supplier = new Supplier(
-          _.pick(req.body, ["tags", "email", "country", "category"])
+          _.pick(req.body, ["email", "country", "category"])
         );
 
         supplier.companyId = req.params.companyId;
@@ -1922,13 +1922,16 @@ router.post(
           }
         });
       } else {
-        let company = await Company.findOne({ name: req.body.supplier_company_name });
+        let company = await Company.findOne({
+          name: req.body.supplier_company_name,
+        });
 
         if (company) {
           return res.send({
             responseCode: "99",
-            responseDescripiton: "Supplier Company already exist, to continue get company admin email "
-          })
+            responseDescripiton:
+              "Supplier Company already exist, to continue get company admin email ",
+          });
         }
 
         company = await Company.create({
@@ -1951,7 +1954,7 @@ router.post(
           isVerified: true,
           isAdmin: true,
           company: company._id,
-          confirmationCode: token
+          confirmationCode: token,
         });
 
         let supplier = new Supplier(
@@ -2046,7 +2049,6 @@ router.patch(
       }
 
       supplier = await Supplier.findByIdAndUpdate(supplierId, {
-        tags,
         category,
         status,
         country,
@@ -2070,8 +2072,7 @@ router.get("/company/:companyId/suppliers", async (req, res) => {
     })
       .populate({ path: "supplier_company", select: "company_name" })
       .populate({ path: "main_contact", select: "-_id first_name last_name" })
-      .populate({ path: "category", select: "-_id name" })
-      .populate("tags");
+      .populate({ path: "category", select: "-_id name" });
 
     if (suppliers.length == 0) {
       return res.send({
@@ -2095,13 +2096,12 @@ router.get("/company/suppliers/:supplierId", async (req, res) => {
     const supplier = await Supplier.findById(req.params.supplierId)
       .populate({ path: "supplier_company", select: "company_name" })
       .populate({ path: "main_contact", select: "-_id first_name last_name" })
-      .populate({ path: "category", select: "-_id name" })
-      .populate("tags");
+      .populate({ path: "category", select: "-_id name" });
 
     if (!supplier) {
       return res.send({
         responseCode: "99",
-        responseStatus: `Supplier with the id ${supplierId} does not exist`,
+        responseStatus: `Supplier with the id ${req.params.supplierId} does not exist`,
       });
     }
 

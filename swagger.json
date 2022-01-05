@@ -3530,12 +3530,7 @@
       }
     },
     "editSupplier": {
-      "required": [
-        "email",
-        "country",
-        "status",
-        "companyId"
-      ],
+      "required": ["email", "country", "status", "companyId"],
       "properties": {
         "email": {
           "type": "string"
@@ -3543,7 +3538,7 @@
         "country": {
           "type": "string"
         },
-        "catgeory": {
+        "category": {
           "type": "string"
         },
         "companyId": {
