@@ -25,7 +25,7 @@ const Item = mongoose.model(
     model: {
       type: String,
     },
-    tags: {
+    tagss: {
       type: String,
     },
     image_upload: {
