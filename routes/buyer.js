@@ -50,13 +50,13 @@ router.get("/getAllProjects/:companyId", authGuard, async (req, res) => {
 
   project.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        project,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      project,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.post("/addProject", [authGuard, admin], async (req, res) => {
@@ -229,13 +229,13 @@ router.get("/auctions/:getAllActionsByBuyerUserID", async (req, res) => {
   });
   auction.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: "No record found" })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: "No record found" })
     : res.status(200).send({
-        auction,
-        responseCode: "00",
-        responseDescription: "Succesfull",
-      });
+      auction,
+      responseCode: "00",
+      responseDescription: "Succesfull",
+    });
 });
 
 router.get("/auctions/supplier/:getAllActionsByEmail", async (req, res) => {
@@ -314,7 +314,6 @@ router.post(
           let payload = {};
           payload.supplier = sup;
           payload.status = 'Pending';
-          payload.starting_price = req.body.starting_price;
           suppliers.push(payload);
         })
       }
@@ -430,11 +429,11 @@ router.get("/company/:companyId/auctions", async (req, res) => {
   }
 });
 
-router.delete("/company/:companyId/auctions/:auctionId", async (req, res) => {
-  const { auctionId, companyId } = req.params;
+router.delete("/company/deleteAuction/:auctionId", async (req, res) => {
+  const { auctionId } = req.params;
 
   try {
-    let auction = await Auction.findOne({ _id: auctionId, companyId });
+    let auction = await Auction.findOne({ _id: auctionId });
 
     if (!auction) {
       return res.send({
@@ -454,16 +453,16 @@ router.delete("/company/:companyId/auctions/:auctionId", async (req, res) => {
 });
 
 router.patch(
-  "/company/:companyId/auctions/:auctionId",
+  "/company/editAuction/:auctionId",
   upload.array("documents", 10),
   async (req, res) => {
-    const { auctionId, companyId } = req.params;
+    const { auctionId } = req.params;
 
     const { error } = validateAuction(req.body);
     if (error) return res.status(400).send(error.details[0].message);
 
     try {
-      let auction = await Auction.findOne({ _id: auctionId, companyId });
+      let auction = await Auction.findOne({ _id: auctionId });
 
       if (!auction) {
         return res.send({
@@ -576,7 +575,7 @@ router.post("/company/auction/addComment/:auctionId", async (req, res) => {
     const { error } = validateComment(body);
     if (error) return res.status(400).send(error.details[0].message);
 
-    const auction = await Auction.findById(req.params.auctionId);
+    let auction = await Auction.findById(req.params.auctionId);
 
     if (!auction) {
       return res.send({
@@ -588,7 +587,7 @@ router.post("/company/auction/addComment/:auctionId", async (req, res) => {
     if (req.body.replyingTo) {
       const existComment = await Comment.findById(req.body.replyingTo);
 
-      if (!iexistCComment) {
+      if (!existComment) {
         return res.send({
           responseCode: "99",
           responseDescription: "Provided Comment does not exist"
@@ -603,7 +602,7 @@ router.post("/company/auction/addComment/:auctionId", async (req, res) => {
 
       existComment.replies(comment._id);
 
-      await exist
+      await existComment.save();
 
       return res.send({
         comment,
@@ -617,6 +616,10 @@ router.post("/company/auction/addComment/:auctionId", async (req, res) => {
       comment.auctionId = req.params.auctionId;
 
       comment = await comment.save();
+
+      auction.comments.push(comment._id);
+
+      await auction.save();
 
       return res.send({
         comment,
@@ -858,13 +861,13 @@ router.get(
 
     item.length <= 0
       ? res
-          .status(400)
-          .send({ responseCode: "99", responseDescription: `No record found` })
+        .status(400)
+        .send({ responseCode: "99", responseDescription: `No record found` })
       : res.status(200).send({
-          item,
-          responseCode: "00",
-          responseDescription: `Succesfull`,
-        });
+        item,
+        responseCode: "00",
+        responseDescription: `Succesfull`,
+      });
   }
 );
 
@@ -1173,13 +1176,13 @@ router.get("/company/getItemsCatGroups/:companyId", async (req, res) => {
   // console.log(itemsCatAndGroups);
   itemsCatAndGroups.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        itemsCatAndGroups,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      itemsCatAndGroups,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.get("/company/getSupplierCategories/:companyId", async (req, res) => {
@@ -1189,13 +1192,13 @@ router.get("/company/getSupplierCategories/:companyId", async (req, res) => {
   // console.log(supplierCategories);
   supplierCategories.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        supplierCategories,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      supplierCategories,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.get("/company/getCostCenter/:companyId", async (req, res) => {
@@ -1205,13 +1208,13 @@ router.get("/company/getCostCenter/:companyId", async (req, res) => {
   //console.log(costCenter);
   costCenter.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        costCenter,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      costCenter,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.get("/company/getTag/:companyId", async (req, res) => {
@@ -1221,13 +1224,13 @@ router.get("/company/getTag/:companyId", async (req, res) => {
   // console.log(supplierCategories);
   tag.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        tag,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      tag,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.post(

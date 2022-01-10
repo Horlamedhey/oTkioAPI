@@ -102,34 +102,25 @@ const Auction = mongoose.model(
         enum: ['Accepted', 'Rejected', 'Participated', 'Pending'],
         default: 'Pending'
       },
-      number_of_bids: {
-        type: Number,
-        default: 0
-      },
       starting_price: {
         type: Number,
-        default: 0
       },
-      bonus_walus: {
+      bonus_malus_percent: {
         type: Number,
-        default: 0
       },
-      bonus_walus_amount: {
+      bonus_malus_amount: {
         type: Number,
-        default: 0
       },
       final_bid: {
         type: Number,
         default: 0
       },
-      weighted_bid: {
-        type: Number,
-        default: 0
-      },
-      invited_sellers: [String],
       named_items: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Item'
+        item: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Item'
+        },
+        quantity: Number
       }],
       bids: [{
         index: Number,
@@ -148,6 +139,10 @@ const Auction = mongoose.model(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    comments: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment'
+    }]
   })
 );
 
