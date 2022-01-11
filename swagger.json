@@ -3272,17 +3272,90 @@
         }
       }
     },
-    "auction": {
-      "required": ["project_type", "company_buyer_name", "userId"],
+    "auction":  {
       "properties": {
-        "project_type": {
+        "projectId": {
           "type": "string"
         },
-        "sellersEmail": [],
-        "company_buyer_name": {
+        "auction_type": {
           "type": "string"
         },
-        "userId": {
+        "auction_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "starting_price": {
+          "type": "number"
+        },
+        "minimum_step": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "cost_center": {
+          "type": "string"
+        },
+        "budget": {
+          "type": "string"
+        },
+        "cool_down": {
+          "type": "number"
+        },
+        "awarding_commitment": {
+          "type": "boolean"
+        },
+        "show_to_supplier": {
+          "type": "boolean"
+        },
+        "reserve_price": {
+          "type": "number"
+        },
+        "number_of_participants": {
+          "type": "number"
+        },
+        "disclose_suppliers_bid": {
+          "type": "boolean"
+        },
+        "disclose_suppliers_name": {
+          "type": "boolean"
+        },
+        "disclose_starting_price": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suppliers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "docs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "companyId": {
           "type": "string"
         }
       }
