@@ -12,12 +12,22 @@ const sendinBlue = require("nodemailer-sendinblue-transport");
 //     },
 //   })
 // );
-const transporter = nodemailer.createTransport({
-  service: "SendinBlue",
+// const transporter = nodemailer.createTransport({
+//   service: "SendinBlue",
+//   auth: {
+//     user: "contact@oktio.io", //config.email
+//     pass: "HACBQpXJOfs12nkh", //config.pass //password
+//   },
+// });
+
+
+const transporter = ndoemailer.createTransport({
+  host: 'smtp.ethereal.mail',
+  port: 587,
   auth: {
-    user: "contact@oktio.io", //config.email
-    pass: "HACBQpXJOfs12nkh", //config.pass //password
-  },
-});
+    user: 'jaylan.pollich10@ethereal.email',
+    pass: 'A1Y7a49RPPD9dcKJsR'
+  }
+})
 
 exports.transporter = transporter;
