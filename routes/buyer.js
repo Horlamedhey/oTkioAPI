@@ -1,7 +1,12 @@
-const { authGuard, admin } = require("../middleware/auth");
-const { transporter } = require("../middleware/sendEmail");
 const fs = require("fs");
 const _ = require("lodash");
+const multer = require("multer");
+const express = require("express");
+const bcrypt = require("bcrypt");
+const { google } = require('googleapis')
+
+const { authGuard, admin } = require("../middleware/auth");
+const { transporter } = require("../middleware/sendEmail");
 const { Project, validateProject } = require("../models/project");
 const { Tag, validateTag } = require("../models/tag");
 const {
@@ -15,9 +20,6 @@ const {
 const { CostCenter, validateCostCenter } = require("../models/costCenter");
 const { Item, validateItem } = require("../models/item");
 const { Auction, validateAuction } = require("../models/auction");
-const multer = require("multer");
-const express = require("express");
-const bcrypt = require("bcrypt");
 const { validateBudget, Budget } = require("../models/budget");
 const { validateDoc, Doc } = require("../models/doc");
 const { Attachment } = require("../models/attachment");
@@ -40,6 +42,19 @@ const fileStorageEngine = multer.diskStorage({
 });
 
 const upload = multer({ storage: fileStorageEngine });
+
+// Calender oauth configuraton
+const GOOGLE_OAUTH_CLIENT_ID = '76045324915-tme23hamd93mt0m35vfcd53ha5uem9pc.apps.googleusercontent.com'
+const GOOGLE_OAUTH_CLIENT_SECRET = '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'
+const GOOGLE_OAUTH_PLAYGROUND_REFRESH_TOKEN = '1//04ZcRNDeuurpsCgYIARAAGAQSNwF-L9IrzWYry_154nqxohAm3hwIrzfvt2piskWd9aUMK8rNNHcs7nLStJfVDoKrmFvWZxt7NYc'
+
+const { Oauth2 } = google.auth;
+
+const Oauth2Client = new Oauth2(GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET);
+
+Oauth2Client.setCredientials({ refresh_token: GOOGLE_OAUTH_PLAYGROUND_REFRESH_TOKEN })
+
+const calender = google.calender({ version: 'v3', auth: Oauth2Client })
 
 router.get("/getAllProjects/:companyId", authGuard, async (req, res) => {
   const project = await Project.find({
@@ -345,7 +360,68 @@ router.post(
 
       auction.createdBy = req.user._id;
 
+
       auction = await auction.save();
+
+      auction = await Auction.findById(auction._id).populate({
+        path: 'suppliers',
+        populate: [
+          {
+            path: "supplier",
+            select: "supplier_company status email",
+            populate: [
+              { path: "supplier_company", select: "company_name" }
+            ]
+          }
+        ]
+      });
+
+      const supplierEmails = [];
+
+      auction.suppliers.forEach(sup => {
+        supplierEmails.push(sup.supplier.email);
+      })
+
+      let startDate = new Date(auction.startDate);
+      let endDate = new Date(auction.endDate);
+
+      let request = calender.events.insert({
+        auth: Oauth2Client,
+        calenderId: 'primary',
+        resource: {
+          'summary': `${auction.auction_name} - Auction`,
+          'location': 'Otkio Auction Platform',
+          'description': auction.description,
+          'start': {
+            'dateTime': startDate,
+            'timeZone': 'GMT'
+          },
+          'end': {
+            'dateTime': endDate,
+            'timeZone': 'GMT'
+          },
+          'recurrence': [
+            'RRULE:FREQ=DAILY:COUNT=2'
+          ],
+          'attendees': [...supplierEmail],
+          'reminders': {
+            'useDefault': false,
+            'overrides': [
+              { 'method': 'email', 'minutes': 24 * 60 },
+              { 'method': 'popup', 'minutes': 60 * 4 }
+            ]
+          }
+        }
+      })
+
+
+      request.execute(function (res) {
+        auction.calenderId = res.id,
+          auction.calenderLink = res.htmlLink
+      })
+
+      auction = await auction.save();
+
 
       // const data = req.body.suppliers_email;
       // data.forEach((items) => {
@@ -373,29 +449,31 @@ router.post(
       //   (auction.link = req.body.link),
       //   (auction = await auction.save());
 
-      // const notification_url = `${process.env.VERIFICATION_URL}`;
-      // // SEND THE SELLER A NOTIFICATION EMAIL
-      // const compose =
-      //   `Hello! <br><br> You have been invited to be part of an auction by <b>${req.body.company_buyer_name}</b>.<br><br>` +
-      //   `Kindly login to OKTIO to see auction.<br>` +
-      //   `<h5><a style="color: #ee491f;" href="${notification_url}">Click here</a></h5><br> ` +
-      //   `<p>Thank you for joining <span style="color: #ee491f;"><b>Oktio</b></span> and we look forward to seeing you onboard.</p>` +
-      //   `Best Regards, <br/> OKTIO Team`;
+      const notification_url = `${process.env.VERIFICATION_URL}/seller/auctions/AcceptInvitation/${auction._id}`;
 
-      // const mailOptions = {
-      //   from: "noreply@otkio.com", // sender address
-      //   bcc: `${req.body.suppliers_email}`, // list of receivers
-      //   subject: "Auction Notification", // Subject line
-      //   html: `${compose}`, // html body
-      // };
+      // Send the seller a notification mail
+      const compose =
+        `Hello! <br><br> You have been invited to be part of an auction by <b>${req.body.company_buyer_name}</b>.<br><br>` +
+        `Kindly login to OKTIO to see auction.<br>` +
+        `<h5><a style="color: #ee491f;" href="${notification_url}">Click here</a></h5><br> ` +
+        `<p>Thank you for joining <span style="color: #ee491f;"><b>Oktio</b></span> and we look forward to seeing you onboard.</p>` +
+        `<p> click the link to add auction to your calender <a style="color: #ee491f;" href="${auction.calenderLink}">Click here</a><p>` +
+        `Best Regards, <br/> OKTIO Team`;
 
-      // transporter.sendMail(mailOptions, function (error, info) {
-      //   if (error) {
-      //     console.log(error);
-      //   } else {
-      //     console.log("Email sent: " + info.response);
-      //   }
-      // });
+      const mailOptions = {
+        from: "noreply@otkio.com", // sender address
+        bcc: supplierEmails, // list of receivers
+        subject: "Auction Notification", // Subject line
+        html: `${compose}`, // html body
+      };
+
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log("Email sent: " + info.response);
+        }
+      });
 
       return res.send({
         auction,

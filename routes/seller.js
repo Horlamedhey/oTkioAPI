@@ -1,4 +1,4 @@
-const { generateVerifyToken } = require("../middleware/auth");
+const { generateVerifyToken, authGuard } = require("../middleware/auth");
 const { transporter } = require("../middleware/sendEmail");
 const _ = require("lodash");
 const bcrypt = require("bcrypt");
@@ -7,6 +7,8 @@ const { SupplierCompany } = require("../models/supplierCompany");
 const { Auction } = require("../models/auction");
 const express = require("express");
 const router = express.Router();
+
+const Auction = require('../models/auction');
 
 router.post("/auctionInvitation", async (req, res) => {
   const { error } = validateSeller(req.body);
@@ -130,13 +132,13 @@ router.post("/getCompanyInvitation", async (req, res) => {
 
   seller.length <= 0
     ? res
-        .status(400)
-        .send({ responseCode: "99", responseDescription: `No record found` })
+      .status(400)
+      .send({ responseCode: "99", responseDescription: `No record found` })
     : res.status(200).send({
-        seller,
-        responseCode: "00",
-        responseDescription: `Succesfull`,
-      });
+      seller,
+      responseCode: "00",
+      responseDescription: `Succesfull`,
+    });
 });
 
 router.post("/getCompanyAcceptedInvitation", async (req, res) => {
@@ -247,5 +249,36 @@ router.get("/getAllMyAuctions/:email", async (req, res) => {
       }
     });
 });
+
+router.get('/auctions/acceptInvitaton', [authGuard], async (req, res) => {
+  try {
+    let auction = await Auction.findById(req.params.id);
+
+    // Get Decoded User Id
+    const userId = req.user._id
+
+    // Get suppliers array
+    const { suppliers } = auction;
+
+    let suppliersClone = [...suppliers];
+
+    suppliersClone = suppliersClone.map(sup => {
+      if (sup.supplier.toString() === userId.toString()) {
+        return { ...sup, status: 'Accepted' }
+      }
+    })
+
+    auction.suppliers = suppliersClone;
+
+    auction = await auction.save();
+
+    return res.send({
+      responseCode: "00",
+      responseDescription: "Successfull"
+    })
+  } catch (ex) {
+    console.log(ex.message);
+  }
+})
 
 module.exports = router;
