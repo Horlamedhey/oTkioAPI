@@ -4,7 +4,6 @@ const _ = require("lodash");
 const bcrypt = require("bcrypt");
 const { User, validateSeller } = require("../models/user");
 const { SupplierCompany } = require("../models/supplierCompany");
-const { Auction } = require("../models/auction");
 const express = require("express");
 const router = express.Router();
 
@@ -250,7 +249,7 @@ router.get("/getAllMyAuctions/:email", async (req, res) => {
     });
 });
 
-router.get('/auctions/acceptInvitaton', [authGuard], async (req, res) => {
+router.get('/auctions/acceptInvitaton/:id', [authGuard], async (req, res) => {
   try {
     let auction = await Auction.findById(req.params.id);
 

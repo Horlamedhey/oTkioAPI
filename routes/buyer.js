@@ -3,7 +3,8 @@ const _ = require("lodash");
 const multer = require("multer");
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { google } = require('googleapis')
+const ics = require('ics');
+const moment = require('moment');
 
 const { authGuard, admin } = require("../middleware/auth");
 const { transporter } = require("../middleware/sendEmail");
@@ -43,18 +44,6 @@ const fileStorageEngine = multer.diskStorage({
 
 const upload = multer({ storage: fileStorageEngine });
 
-// Calender oauth configuraton
-const GOOGLE_OAUTH_CLIENT_ID = '76045324915-tme23hamd93mt0m35vfcd53ha5uem9pc.apps.googleusercontent.com'
-const GOOGLE_OAUTH_CLIENT_SECRET = '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'
-const GOOGLE_OAUTH_PLAYGROUND_REFRESH_TOKEN = '1//04ZcRNDeuurpsCgYIARAAGAQSNwF-L9IrzWYry_154nqxohAm3hwIrzfvt2piskWd9aUMK8rNNHcs7nLStJfVDoKrmFvWZxt7NYc'
-
-const { Oauth2 } = google.auth;
-
-const Oauth2Client = new Oauth2(GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET);
-
-Oauth2Client.setCredientials({ refresh_token: GOOGLE_OAUTH_PLAYGROUND_REFRESH_TOKEN })
-
-const calender = google.calender({ version: 'v3', auth: Oauth2Client })
 
 router.get("/getAllProjects/:companyId", authGuard, async (req, res) => {
   const project = await Project.find({
@@ -363,106 +352,87 @@ router.post(
 
       auction = await auction.save();
 
-      auction = await Auction.findById(auction._id).populate({
-        path: 'suppliers',
-        populate: [
-          {
-            path: "supplier",
-            select: "supplier_company status email",
-            populate: [
-              { path: "supplier_company", select: "company_name" }
-            ]
-          }
-        ]
-      });
+      auction = await Auction.findById(auction._id)
+        .populate({ path: "createdBy", select: "first_name last_name email" })
+        .populate({
+          path: 'suppliers',
+          populate: [
+            {
+              path: "supplier",
+              select: "supplier_company status email",
+              populate: [
+                { path: "supplier_company", select: "company_name" }
+              ]
+            }
+          ]
+        });
 
-      const supplierEmails = [];
+      const suppliersDetails = [];
+      const suppliersEmails = [];
 
       auction.suppliers.forEach(sup => {
-        supplierEmails.push(sup.supplier.email);
+        let payload = {};
+
+        suppliersEmails.push(sup.supplier.email)
+
+        // construct attendee 
+        payload.name = sup.supplier.supplier_company.name
+        payload.email = sup.supplier.email;
+        payload.role = 'REQ-PARTICIPANT';
+        payload.rsvp = true,
+
+          suppliersDetails.push(payload);
       })
 
-      let startDate = new Date(auction.startDate);
-      let endDate = new Date(auction.endDate);
+      let startDate = moment(auction.startDate).format("YYYY-M-D-H-m").split("-");
+      let endDate = moment(auction.endDate).format("YYYY-M-D-H-m").split("-");
+      let duration = startDate.diff(endDate);
+      duration = moment(duration).format("H-m").split("-");
 
-      let request = calender.events.insert({
-        auth: Oauth2Client,
-        calenderId: 'primary',
-        resource: {
-          'summary': `${auction.auction_name} - Auction`,
-          'location': 'Otkio Auction Platform',
-          'description': auction.description,
-          'start': {
-            'dateTime': startDate,
-            'timeZone': 'GMT'
-          },
-          'end': {
-            'dateTime': endDate,
-            'timeZone': 'GMT'
-          },
-          'recurrence': [
-            'RRULE:FREQ=DAILY:COUNT=2'
-          ],
-          'attendees': [...supplierEmail],
-          'reminders': {
-            'useDefault': false,
-            'overrides': [
-              { 'method': 'email', 'minutes': 24 * 60 },
-              { 'method': 'popup', 'minutes': 60 * 4 }
-            ]
-          }
+      let event = {
+        start: startDate,
+        duration: { hours: duration[0], minutes: duration[1] },
+        title: '${auction.name}',
+        description: auction.description,
+        location: 'OKTIO Auction Platform',
+        url: 'http://oktio.com/',
+        categories: ['Auction'],
+        status: 'CONFIRMED',
+        busyStatus: 'BUSY',
+        organizer: {
+          name: `${auction.createdBy.first_name} ${auction.createdBy.last_name}`, email: `${auction.createdBy.email}`
+        },
+        attendees: suppliersDetails
+      };
+
+      const path = `${__dirname}/calender/${auction.name}-event.ics`
+
+      ics.createEvent(event, (err, value) => {
+        if (err) {
+          console.log(err);
+          return;
         }
+
+        fs.writeFileSync(path, value);
       })
 
-
-      request.execute(function (res) {
-        auction.calenderId = res.id,
-          auction.calenderLink = res.htmlLink
-      })
 
       auction = await auction.save();
 
-
-      // const data = req.body.suppliers_email;
-      // data.forEach((items) => {
-      //   auction.auctions.push({
-      //     description: req.body.description,
-      //     name: req.body.name,
-      //     owner: req.body.owner,
-      //     start_date: req.body.start_date,
-      //     end_date: req.body.end_date,
-      //     starting_price: req.body.starting_price,
-      //     cost_center: req.body.cost_center,
-      //     currency: req.body.currency,
-      //     budget: req.body.budget,
-      //     minimum_step: req.body.minimum_step,
-      //     cool_down_period: req.body.cool_down_period,
-      //     item: req.body.item,
-      //     buyer_status: req.body.buyer_status,
-      //     supplier_status: req.body.supplier_status,
-      //     company_buyer_name: req.body.company_buyer_name,
-      //     supplier_email: items,
-      //   });
-      // });
-
-      // (auction.userId = req.body.userId),
-      //   (auction.link = req.body.link),
-      //   (auction = await auction.save());
-
-      const notification_url = `${process.env.VERIFICATION_URL}/seller/auctions/AcceptInvitation/${auction._id}`;
+      const notification_url = `${process.env.VERIFICATION_URL} /seller/auctions / AcceptInvitation / ${auction._id} `;
 
       // Send the seller a notification mail
       const compose =
-        `Hello! <br><br> You have been invited to be part of an auction by <b>${req.body.company_buyer_name}</b>.<br><br>` +
+        `Hello! < br > <br> You have been invited to be part of an auction by <b>${req.body.company_buyer_name}</b>.<br><br>` +
         `Kindly login to OKTIO to see auction.<br>` +
         `<h5><a style="color: #ee491f;" href="${notification_url}">Click here</a></h5><br> ` +
         `<p>Thank you for joining <span style="color: #ee491f;"><b>Oktio</b></span> and we look forward to seeing you onboard.</p>` +
-        `<p> click the link to add auction to your calender <a style="color: #ee491f;" href="${auction.calenderLink}">Click here</a><p>` +
-        `Best Regards, <br/> OKTIO Team`;
+        `<p><a style="color: #ee491f;" href="${path}">Download calender file</a></p>` +
+        `<p>Best Regards, <br /> OKTIO Team</p>`;
 
       const mailOptions = {
         from: "noreply@otkio.com", // sender address
-        bcc: supplierEmails, // list of receivers
+        bcc: suppliersEmails, // list of receivers
         subject: "Auction Notification", // Subject line
         html: `${compose}`, // html body
       };
@@ -622,7 +592,7 @@ router.get("/company/auctions/:auctionId", async (req, res) => {
         ],
       })
       .populate({ path: "docs", select: "name document " })
-      .populate({ path: "createdBy", select: "first_name last_name" })
+      .populate({ path: "createdBy", select: "first_name last_name email" })
       .populate({
         path: "attachments",
         select: "name note attachment link doc createdBy",
@@ -1260,7 +1230,7 @@ router.get("/item/search", async (req, res) => {
   let query = req.query.q;
 
   function escapeRegex(q) {
-    return q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    return q.replace(/[-[\]{ }()*+?.,\\^$|#\s]/g, "\\$&");
   }
 
   try {
@@ -1295,7 +1265,7 @@ router.patch("/company/profile/:companyName", async (req, res) => {
   // companyProfile.length <= 0
   //   ? res
   //       .status(400)
-  //       .send({ responseCode: "99", responseDescription: `No record found` })
+  //       .send({responseCode: "99", responseDescription: `No record found` })
   //   : res.status(200).send({
   //       companyProfile,
   //       responseCode: "00",
@@ -1510,7 +1480,7 @@ router.delete(
   "/deleteProjectUser/:projectId/:userId",
   [authGuard, admin],
   async (req, res) => {
-    // const { error } = validateProject(req.body);
+    // const {error} = validateProject(req.body);
     // if (error) return res.status(400).send(error.details[0].message);
 
     try {
@@ -1622,7 +1592,7 @@ router.post(
   "/company/:projectId/addAttachment",
   upload.single("document"),
   async (req, res) => {
-    // const { error } = validateBudget(req.body);
+    // const {error} = validateBudget(req.body);
     // if (error) return res.status(400).send(error.details[0].message);
 
     try {
@@ -1666,7 +1636,7 @@ router.post(
 );
 
 router.post("/company/editAttachment/:id", async (req, res) => {
-  // const { error } = validateBudget(req.body);
+  // const {error} = validateBudget(req.body);
   // if (error) return res.status(400).send(error.details[0].message);
 
   try {
@@ -1829,7 +1799,7 @@ router.get("/company/:projectId/attachments", async (req, res) => {
 });
 
 router.patch("/library/editDoc/:id", async (req, res) => {
-  // const { error } = validateDoc(req.body);
+  // const {error} = validateDoc(req.body);
   // if (error) return res.status(400).send(error.details[0].message);
 
   try {
@@ -1849,7 +1819,7 @@ router.patch("/library/editDoc/:id", async (req, res) => {
 });
 
 router.delete("/library/deleteDoc/:id", async (req, res) => {
-  // const { error } = validateDoc(req.body);
+  // const {error} = validateDoc(req.body);
   // if (error) return res.status(400).send(error.details[0].message);
 
   try {
@@ -2019,8 +1989,7 @@ router.delete("/company/deleteTag/:id", async (req, res) => {
  * */
 
 router.post(
-  "/company/:companyId/suppliers/addSupplier",
-  [authGuard, admin],
+  "/company/:companyId/suppliers/addSupplier", [authGuard, admin],
   async (req, res) => {
     const { error } = validateSupplier(req.body);
     if (error) return res.status(400).send(error.details[0].message);
@@ -2058,7 +2027,7 @@ router.post(
           `Kindly login to ACCEPT or DECLINE the offer.<br>` +
           `<h5><a style="color: #ee491f;" href="${notification_url}">Click here</a></h5><br> ` +
           `<p>Thank you for joining <span style="color: #ee491f;"><b>Oktio</b></span> and we look forward to seeing you onboard.</p>` +
-          `Best Regards, <br/> OKTIO Team`;
+          `Best Regards, <br /> OKTIO Team`;
 
         const mailOptions = {
           from: "noreply@otkio.com", // sender address
@@ -2131,11 +2100,11 @@ router.post(
           `<h5><a style="color: #ee491f;" href="${notification_url}">Click here</a></h5><br> ` +
           `Use your email "${supplier.email}" as your email and password (No registration needed).` +
           `<p>Thank you for joining <span style="color: #ee491f;"><b>Oktio</b></span> and we look forward to seeing you onboard.</p>` +
-          `Best Regards, <br/> OKTIO Team`;
+          `Best Regards, <br /> OKTIO Team`;
 
         const mailOptions = {
           from: "noreply@otkio.com", // sender address
-          bcc: `${supplier.email}`, // list of receivers
+          to: supplier.email, // list of receivers
           subject: "Supplier Invitation", // Subject line
           html: `${compose}`, // html body
         };
@@ -2144,7 +2113,7 @@ router.post(
           if (error) {
             console.log(error);
           } else {
-            console.log("Email sent: " + info.response);
+            console.log("Email sent: " + info);
           }
         });
 

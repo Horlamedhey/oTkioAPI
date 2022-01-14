@@ -1340,7 +1340,7 @@
             "in": "body",
             "description": "new auction to be craated",
             "schema": {
-              "$ref": "#/definitions/auction",
+              "$ref": "#/definitions/addAuction",
               "consumes": ["application/json"]
             }
           }
@@ -1349,12 +1349,7 @@
           "200": {
             "description": "Successful"
           }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/buyer/company/{companyId}/auctions": {
@@ -1415,11 +1410,6 @@
         "summary": "delete an auction from a company",
         "parameters": [
           {
-            "name": "companyId",
-            "in": "path",
-            "description": "id of company from which auction is to be deleted"
-          },
-          {
             "name": "auctionId",
             "in": "path",
             "description": "id of auction to be deleted"
@@ -1427,10 +1417,7 @@
         ],
         "responses": {
           "200": {
-            "description": "a single auction document",
-            "schema": {
-              "$ref": "#/definitions/auction"
-            }
+            "description": "Successful"
           }
         },
         "security": [
@@ -1446,31 +1433,14 @@
         "summary": "delete an auction from a company",
         "parameters": [
           {
-            "name": "companyId",
-            "in": "path",
-            "description": "id of company from which auction is to be deleted"
-          },
-          {
             "name": "auctionId",
             "in": "path",
             "description": "id of auction to be deleted"
-          },
-          {
-            "name": "auction",
-            "in": "body",
-            "description": "new auction to be craated",
-            "schema": {
-              "$ref": "#/definitions/auction",
-              "consumes": ["application/json"]
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "a single auction document",
-            "schema": {
-              "$ref": "#/definitions/auction"
-            }
+            "description": "Successful"
           }
         },
         "security": [
@@ -1532,11 +1502,33 @@
             "schema": {
               "consumes": ["multipart/form-data"]
             }
-          }    
+          }
         ],
         "responses": {
           "200": {
             "description": "Successful"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/seller/auctions/acceptInvitation/{id}": {
+      "get": {
+        "tags": ["Seller"],
+        "summary": "Accpet Auction Invitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfull"
           }
         },
         "security": [
@@ -3272,90 +3264,17 @@
         }
       }
     },
-    "auction":  {
+    "auction": {
+      "required": ["project_type", "company_buyer_name", "userId"],
       "properties": {
-        "projectId": {
+        "project_type": {
           "type": "string"
         },
-        "auction_type": {
+        "sellersEmail": [],
+        "company_buyer_name": {
           "type": "string"
         },
-        "auction_name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "startDate": {
-          "type": "string"
-        },
-        "endDate": {
-          "type": "string"
-        },
-        "starting_price": {
-          "type": "number"
-        },
-        "minimum_step": {
-          "type": "number"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "cost_center": {
-          "type": "string"
-        },
-        "budget": {
-          "type": "string"
-        },
-        "cool_down": {
-          "type": "number"
-        },
-        "awarding_commitment": {
-          "type": "boolean"
-        },
-        "show_to_supplier": {
-          "type": "boolean"
-        },
-        "reserve_price": {
-          "type": "number"
-        },
-        "number_of_participants": {
-          "type": "number"
-        },
-        "disclose_suppliers_bid": {
-          "type": "boolean"
-        },
-        "disclose_suppliers_name": {
-          "type": "boolean"
-        },
-        "disclose_starting_price": {
-          "type": "boolean"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "suppliers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "docs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "links": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "companyId": {
+        "userId": {
           "type": "string"
         }
       }

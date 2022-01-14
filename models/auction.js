@@ -142,9 +142,7 @@ const Auction = mongoose.model(
     comments: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Comment'
-    }],
-    calenderId: String,
-    calenderLink: String
+    }]
   })
 );
 

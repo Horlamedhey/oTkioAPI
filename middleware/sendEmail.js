@@ -22,11 +22,11 @@ const sendinBlue = require("nodemailer-sendinblue-transport");
 
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.ethereal.mail',
+  host: 'smtp.ethereal.email',
   port: 587,
   auth: {
-    user: 'jaylan.pollich10@ethereal.email',
-    pass: 'A1Y7a49RPPD9dcKJsR'
+    user: 'tyreek.crist57@ethereal.email',
+    pass: 'SygUK5Rjdrb6QYcVHP'
   }
 })
 
