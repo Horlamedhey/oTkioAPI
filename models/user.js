@@ -1,6 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+
+const { Schema } = mongoose;
 
 const User = mongoose.model(
   "User",
@@ -82,6 +83,28 @@ const User = mongoose.model(
         type: String,
       },
     },
+    auction_invites: [{
+      sender: {
+        type: Schema.Types.ObjectId,
+        ref: 'Company'
+      },
+      status: {
+        type: String,
+        enum: ['accepted', 'rejected', 'pendinng'],
+        default: 'pending'
+      }
+    }],
+    supplier_company_invites: [{
+      sender: {
+        type: Schema.Types.ObjectId,
+        ref: 'Company'
+      },
+      status: {
+        type: String,
+        enum: ['accepted', 'rejected', 'pendinng'],
+        default: 'pending'
+      }
+    }],
   })
 );
 
