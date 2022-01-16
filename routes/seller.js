@@ -8,6 +8,7 @@ const express = require("express");
 const router = express.Router();
 
 const Auction = require('../models/auction');
+const { Supplier } = require("../models/supplier");
 
 router.post("/auctionInvitation", async (req, res) => {
   const { error } = validateSeller(req.body);
@@ -201,7 +202,7 @@ router.post("/declineCompanyInvitation", async (req, res) => {
 
 router.get("/:confirmationCode", async (req, res) => {
   await User.findOne({
-    confirmationCode: req.params.confirmationCode,
+    confirmationCode: req.param.confirmationCode,
   }).then((userFound) => {
     try {
       if (userFound && userFound.status === "Pending") {
@@ -231,7 +232,7 @@ router.get("/:confirmationCode", async (req, res) => {
 
 router.get("/getAllMyAuctions/:email", async (req, res) => {
   const auction = await Auction.find({
-    sellersEmail: { $elemMatch: { $eq: req.params.email } },
+    sellersEmail: { $elemMatch: { $eq: req.param.email } },
   })
     .select("-_id project_type company_buyer_name userId")
     .then((auctions) => {
@@ -249,9 +250,9 @@ router.get("/getAllMyAuctions/:email", async (req, res) => {
     });
 });
 
-router.get('/auctions/acceptInvitaton/:id', [authGuard], async (req, res) => {
+router.post('/auctions/invitaton/:id', [authGuard], async (req, res) => {
   try {
-    let auction = await Auction.findById(req.params.id);
+    let auction = await Auction.findById(req.param.id);
 
     // Get Decoded User Id
     const userId = req.user._id
@@ -267,14 +268,57 @@ router.get('/auctions/acceptInvitaton/:id', [authGuard], async (req, res) => {
       }
     })
 
+    let user = await User.findById(re.user._id);
+
+    let auctionInviteClone = user.auction_invites;
+
+    auctionInviteClone = auctionInvites.map(sen => {
+      if (sen.sender.toString() === auction.companyId.toString()) {
+        return { ...sen, status: req.body.status }
+      }
+    })
+
+    user.auction_invites = auctionInviteClone;
+
     auction.suppliers = suppliersClone;
 
     auction = await auction.save();
+    user = await user.save();
 
     return res.send({
       responseCode: "00",
       responseDescription: "Successfull"
     })
+  } catch (ex) {
+    console.log(ex.message);
+  }
+})
+
+router.post('/supplier/invitation/:id', async (req, res) => {
+  try {
+    // Get decoded user id
+    const userId = req.user._id;
+    const userEmail = req.user.email;
+
+    let user = await User.findOne({ email: userEmail });
+
+    let supplierCompanyInvitesClone = user.supplier_company_invites;
+
+    supplierCompanyInvitesClone = supplierCompanyInvitesClone.map(inv => {
+      if (inv.sender.toString() === req.param.id.toString()) {
+        return { ...inv, status: req.body.status };
+      }
+    });
+
+    user.supplier_company_invites = supplierCompanyInvitesClone;
+
+    await user.save();
+
+    return res.send({
+      responseCode: "00",
+      responseDescription: "successfull"
+    })
+
   } catch (ex) {
     console.log(ex.message);
   }

@@ -1516,10 +1516,32 @@
         ]
       }
     },
-    "/api/seller/auctions/acceptInvitation/{id}": {
+    "/api/seller/auctions/invitation/{id}": {
       "get": {
         "tags": ["Seller"],
         "summary": "Accpet Auction Invitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfull"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/seller/supplier/invitation/{id}": {
+      "post": {
+        "tags": ["Seller"],
+        "summary": "Accpet Company Supplier Invitation",
         "parameters": [
           {
             "name": "id",

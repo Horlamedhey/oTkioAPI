@@ -359,7 +359,7 @@ router.post(
           populate: [
             {
               path: "supplier",
-              select: "supplier_company status email",
+              select: "supplier_company status email _id",
               populate: [
                 { path: "supplier_company", select: "company_name" }
               ]
@@ -379,9 +379,11 @@ router.post(
         payload.name = sup.supplier.supplier_company.name
         payload.email = sup.supplier.email;
         payload.role = 'REQ-PARTICIPANT';
-        payload.rsvp = true,
+        payload.rsvp = true;
 
-          suppliersDetails.push(payload);
+        suppliersDetails.push(payload);
+
+        await User.findOneAndUpdate({ _id: sup._id }, { $push: { auction_invites: { sender: req.body.companyId, status: 'pending' } } })
       })
 
       let startDate = moment(auction.startDate).format("YYYY-M-D-H-m").split("-");
@@ -419,7 +421,7 @@ router.post(
 
       auction = await auction.save();
 
-      const notification_url = `${process.env.VERIFICATION_URL} /seller/auctions / AcceptInvitation / ${auction._id} `;
+      const notification_url = `${process.env.VERIFICATION_URL}/seller/auctions/invitation/ ${auction._id} `;
 
       // Send the seller a notification mail
       const compose =
@@ -1994,19 +1996,27 @@ router.post(
     const { error } = validateSupplier(req.body);
     if (error) return res.status(400).send(error.details[0].message);
     try {
+
+      // query if the supplier is part of the company suppliers list
       let supplier = await Supplier.findOne({
-        email: req.body.email,
+        email: req.body.email, companyId: req.param.companyId
       });
-      const notification_url = `${process.env.VERIFICATION_URL}`;
+
       if (supplier) {
         return res.send({
           responseCode: "99",
           responseDescription: `Supplier with email ${req.body.email} already exist`,
         });
       }
+
+      const notification_url = `${process.env.VERIFICATION_URL}/seller/auctions/invitation/${req.param.companyId} `;
+
+      // check if the provided email is a company admin
       let supplierCompanyAdmin = await User.findOne({
         email: req.body.email,
       });
+
+      // only company email can be added to be a supplier
       if (supplierCompanyAdmin && !supplierCompanyAdmin.isAdmin) {
         return res.send({
           responseCode: "99",
@@ -2022,6 +2032,11 @@ router.post(
         supplier.main_contact = req.body.userId;
 
         supplier = await supplier.save();
+
+        supplierCompanyAdmin = [...supplierCompanyAdmin.supplier_company_invites, { sender: req.params.companyId, status: 'pending' }]
+
+        await supplierCompanyAdmin.save();
+
         const compose =
           `Hello! <br><br> You have been invited to be a supplier for <b>${req.body.company_name}</b> on OKTIO.<br><br>` +
           `Kindly login to ACCEPT or DECLINE the offer.<br>` +
@@ -2031,7 +2046,7 @@ router.post(
 
         const mailOptions = {
           from: "noreply@otkio.com", // sender address
-          bcc: `${supplierCompanyAdmin.email}`, // list of receivers
+          to: `${supplierCompanyAdmin.email}`, // list of receivers
           subject: "Supplier Invitation", // Subject line
           html: `${compose}`, // html body
         };
@@ -2053,19 +2068,18 @@ router.post(
           name: req.body.supplier_company_name,
         });
 
-        if (company) {
-          return res.send({
-            responseCode: "99",
-            responseDescripiton:
-              "Supplier Company already exist, to continue get company admin email ",
+        if (!company) {
+          company = await Company.create({
+            company_name: req.body.supplier_company_name,
+            country: req.body.country,
+            email: req.body.email,
           });
+          // return res.send({
+          //   responseCode: "99",
+          //   responseDescripiton:
+          //     "Supplier Company already exist, to continue get company admin email ",
+          // });
         }
-
-        company = await Company.create({
-          company_name: req.body.supplier_company_name,
-          country: req.body.country,
-          email: req.body.email,
-        });
 
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(req.body.email, salt);
@@ -2082,6 +2096,7 @@ router.post(
           isAdmin: true,
           company: company._id,
           confirmationCode: token,
+          supplier_company_invite: [{ sender: req.params.companyId, status: 'pending' }]
         });
 
         let supplier = new Supplier(
